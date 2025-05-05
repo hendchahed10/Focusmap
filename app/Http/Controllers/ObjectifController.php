@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers;
 
 use App\Models\Objectif;
 use Illuminate\Http\Request;
@@ -29,8 +29,14 @@ class ObjectifController extends Controller
 
     public function show($id)
     {
-        $objectif = Objectif::with('etapes')->findOrFail($id);
-        return response()->json($objectif);
+            $objectif = Objectif::with('etapes')->findOrFail($id);
+            $etapes = $objectif->etapes;
+            $total = $etapes->count();
+            $terminees = $etapes->where('terminee', true)->count();
+            $progression = $total > 0 ? round(($terminees / $total) * 100) : 0;
+        
+            return view('objectif_details', compact('objectif', 'etapes', 'progression', 'terminees', 'total'));
+        
     }
 
     public function destroy($id)

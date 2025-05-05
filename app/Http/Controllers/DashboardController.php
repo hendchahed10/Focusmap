@@ -13,41 +13,46 @@ class DashboardController extends Controller
      */
     public function index()
 {
-    $objectifs = Objectif::where('utilisateur_login', auth()->user()->login)->get();
+    $user = auth()->user();
+    $objectifs = Objectif::where('utilisateur_login', $user->login)->get();
 
-    // Construire le format jsMind (node_tree)
+    if($objectifs->isEmpty()) {
+        return view('dashboard', ['objectifs' => $objectifs]);
+    }
+
+    // Format node_array obligatoire pour jsMind
     $nodes = [
-        'id' => 'root',
-        'topic' => 'Mes Objectifs',
-        'children' => []
+        [
+            'id' => 'root',
+            'topic' => 'Mes Objectifs (' . $objectifs->count() . ')',
+            'isroot' => true,
+            'expanded' => true
+        ]
     ];
 
-    foreach ($objectifs as $objectif) {
-        $nodes['children'][] = [
-            'id' => 'obj-' . $objectif->id,
-            'topic' => $objectif->titre,
-            'children' => [
-                [
-                    'id' => 'desc-' . $objectif->id,
-                    'topic' => $objectif->description
-                ]
-            ]
+    foreach ($objectifs as $obj) {
+        $nodes[] = [
+            'id' => 'obj-' . $obj->id,
+            'topic' => '<a href="' . route('objectifs.show', ['id' => $obj->id]) . '">' . e($obj->titre) . '</a>',
+            'parentid' => 'root'
+
         ];
+        
     }
 
     $jsMindData = [
         'meta' => [
-            'name' => 'focusmap',
-            'author' => 'toi',
-            'version' => '1.0'
+            'name' => 'Objectifs de '.$user->nom,
+            'author' => 'FocusMap',
+            'version' => '1.0',
         ],
-        'format' => 'node_tree',
+        'format' => 'node_array', 
         'data' => $nodes
     ];
 
     return view('dashboard', [
         'objectifs' => $objectifs,
-        'jsMindData' => $jsMindData // pas encodé ici
+        'jsMindData' => $jsMindData 
     ]);
 }
 }

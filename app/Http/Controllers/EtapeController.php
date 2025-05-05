@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers;
 
 use App\Models\Etape;
 use Illuminate\Http\Request;
@@ -17,13 +17,11 @@ class EtapeController extends Controller
         $validated = $request->validate([
             'titre' => 'required',
             'description' => 'nullable',
-            'completed' => 'required|boolean',
             'objectif_id' => 'required|exists:objectifs,id',
         ]);
 
         $etape = Etape::create($validated);
-
-        return response()->json($etape, 201);
+        return redirect()->route('objectifs.show', $request->objectif_id);
     }
 
     public function show($id)
@@ -59,4 +57,13 @@ class EtapeController extends Controller
     {
         return Etape::where('objectif_id', $objectif_id)->get();
     }
+    public function toggle($id)
+{
+    $etape = Etape::findOrFail($id);
+    $etape->terminee = !$etape->terminee;
+    $etape->save();
+
+    return redirect()->back();
+}
+
 }

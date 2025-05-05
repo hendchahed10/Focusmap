@@ -12,6 +12,15 @@ class Utilisateur extends Authenticatable
 
     protected $table = 'utilisateurs';
 
+    // Spécifie que la clé primaire est 'login'
+    protected $primaryKey = 'login';
+
+    // Précise que ce n'est pas un champ auto-incrémenté
+    public $incrementing = false;
+
+    // Précise le type de la clé primaire
+    protected $keyType = 'string';
+
     protected $fillable = [
         'nom', 'email', 'login', 'password'
     ];
@@ -20,15 +29,14 @@ class Utilisateur extends Authenticatable
         'password', 'remember_token',
     ];
 
-    /**
-     * Relation avec les objectifs
-     */
     public function objectifs()
     {
         return $this->hasMany(Objectif::class, 'utilisateur_login', 'login');
     }
+
+    // Redéfinit l'identifiant d'authentification
     public function getAuthIdentifierName()
-{
-    return 'login'; // Instead of default 'email'
-}
+    {
+        return 'login';
+    }
 }

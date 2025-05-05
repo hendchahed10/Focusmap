@@ -21,8 +21,17 @@ class Objectif extends Model
         return $this->belongsTo(Utilisateur::class, 'utilisateur_login', 'login');
     }
 
-    public function étapes()
+    public function etapes()
     {
         return $this->hasMany(Etape::class, 'objectif_id');
     }
+    public function ressources()
+{
+    return $this->hasMany(Ressource::class);
+}
+public function motivations()
+{
+    return $this->hasMany(Motivation::class);
+}
+
 }

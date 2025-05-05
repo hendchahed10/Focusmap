@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreatePointInteretsTable extends Migration
+class AddTermineeToEtapesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,9 +13,8 @@ class CreatePointInteretsTable extends Migration
      */
     public function up()
     {
-        Schema::create('point_interets', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        Schema::table('etapes', function (Blueprint $table) {
+            //
         });
     }
 
@@ -26,6 +25,8 @@ class CreatePointInteretsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('point_interets');
+        Schema::table('etapes', function (Blueprint $table) {
+            //
+        });
     }
 }

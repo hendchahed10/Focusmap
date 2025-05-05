@@ -17,12 +17,14 @@ class CreateEtapesTable extends Migration
             $table->id(); 
             $table->string('titre', 255);
             $table->string('description', 255)->nullable();
-            $table->boolean('completed');
+            $table->boolean('terminee')->default(false);
             $table->unsignedBigInteger('objectif_id')->nullable();
             $table->foreign('objectif_id')
                   ->references('id')
                   ->on('objectif') 
                   ->onDelete('set null');
+            $table->timestamps();
+
         });
     }
 
