@@ -109,6 +109,13 @@ Route::patch('/etapes/{id}/toggle', [EtapeController::class, 'toggle'])->name('e
 
 Auth::routes();
 
+//pour le partage d'objectifs
+// routes/api.php
+Route::middleware('auth:sanctum')->group(function () {
+    Route::delete('/objectifs/{objectif}/unshare', [ObjectifController::class, 'unshare'])
+         ->name('objectifs.unshare');
+});
+
 //pour la déconnexion
 Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
      ->name('logout')

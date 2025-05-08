@@ -38,6 +38,8 @@
         <h2 class="text-center mt-4">Calendrier de mes objectifs</h2>
         <div id="calendar"></div>
     </div>
+
+    {{--Liste des amis}}
     <h3>Mes amis</h3>
     <ul>
         @foreach(auth()->user()->amis as $ami)
@@ -45,6 +47,85 @@
         @endforeach
     </ul>
 
+<div class="row mt-4">
+    <!-- Liste des objectifs publics -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-globe me-2"></i>Objectifs Publics
+                </h5>
+            </div>
+            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                @forelse($publicObjectives as $objectif)
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6>{{ $objectif->titre }}</h6>
+                            <p class="text-muted small">
+                                Par {{ $objectif->utilisateur->nom }} • 
+                                {{ $objectif->created_at->diffForHumans() }}
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <a href="{{ route('objectifs.show', $objectif->id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    Voir
+                                </a>
+                                @if($objectif->latitude && $objectif->longitude)
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                            onclick="focusOnMap({{ $objectif->latitude }}, {{ $objectif->longitude }})">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center text-muted py-4">
+                        Aucun objectif public pour le moment
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des objectifs partagés -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-friends me-2"></i>Partagés avec moi
+                </h5>
+            </div>
+            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                @forelse($sharedObjectives as $objectif)
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6>{{ $objectif->titre }}</h6>
+                            <p class="text-muted small">
+                                Partagé par {{ $objectif->utilisateur->nom }} • 
+                                {{ $objectif->pivot->created_at->diffForHumans() }}
+                            </p>
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ route('objectifs.show', $objectif->id) }}" 
+                                   class="btn btn-sm btn-outline-success">
+                                    Voir
+                                </a>
+                                <button class="btn btn-sm btn-outline-danger"
+                                        onclick="unshareObjective({{ $objectif->id }})">
+                                    <i class="fas fa-user-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center text-muted py-4">
+                        Aucun objectif partagé avec vous
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+</div>
     {{-- Formulaire de création d'objectifs --}}
     <h2>Créer un objectif</h2>
     <form action="{{ route('objectifs.store') }}" method="POST">
@@ -71,7 +152,7 @@
         </div>
 
         <div class="form-group mb-2">
-            <label for="deadline"> :</label>
+            <label for="deadline">Deadline :</label>
             <input type="date" name="deadline" id="deadline" class="form-control">
         </div>
 
@@ -157,7 +238,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 
 
-
+<!--Mindmap-->
     <script>
 document.addEventListener("DOMContentLoaded", function() {
     @if(!$objectifs->isEmpty())
@@ -199,6 +280,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 </script>
 
+<!--Calendrier-->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
@@ -283,44 +365,130 @@ document.addEventListener('DOMContentLoaded', function() {
 });
         </script>
 
+
+<!--Carte-->
+<script>
+    const objectifs = @json($objectifs);
+</script>
+
     <script>
-        let map, marker;
+        document.addEventListener('DOMContentLoaded', function() {
+    // 1. Initialisation de la carte
+    const map = L.map('map').setView([48.8566, 2.3522], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
 
-        function initMap(lat, lng) {
-            map = L.map('map').setView([lat, lng], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
+    // 2. Configuration des icônes personnalisées
+    const objectiveIcon = L.icon({
+        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34]
+    });
 
-            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+    // 3. Groupe de marqueurs pour meilleures performances
+    const markersGroup = L.layerGroup().addTo(map);
 
-            marker.on('dragend', function () {
-                const pos = marker.getLatLng();
-                document.getElementById('latitude').value = pos.lat;
-                document.getElementById('longitude').value = pos.lng;
-            });
+    // 4. Ajout des objectifs existants
+    @foreach($objectifs as $objectif)
+        @if($objectif->latitude && $objectif->longitude)
+            const marker{{ $objectif->id }} = L.marker(
+                [{{ $objectif->latitude }}, {{ $objectif->longitude }}],
+                { 
+                    icon: objectiveIcon,
+                    objectiveId: {{ $objectif->id }} // Stocke l'ID dans le marqueur
+                }
+            ).addTo(markersGroup);
+            
+            // Popup avec détails
+            marker{{ $objectif->id }}.bindPopup(`
+                <div class="leaflet-popup-content">
+                    <h5>{{ $objectif->titre }}</h5>
+                    <p>{{ Str::limit($objectif->description, 100) }}</p>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ route('objectifs.show', $objectif->id) }}" 
+                           class="btn btn-sm btn-primary">
+                            Voir
+                        </a>
+                        <button onclick="editObjective({{ $objectif->id }})" 
+                                class="btn btn-sm btn-outline-secondary">
+                            ✏️
+                        </button>
+                    </div>
+                </div>
+            `);
+        @endif
+    @endforeach
 
-            map.on('click', function (e) {
-                const { lat, lng } = e.latlng;
-                marker.setLatLng([lat, lng]);
-                document.getElementById('latitude').value = lat;
-                document.getElementById('longitude').value = lng;
-            });
+    // 5. Gestion du clic sur la carte (création)
+    let marker;
+    map.on('click', function(e) {
+        // Supprime l'ancien marqueur temporaire
+        if (marker) map.removeLayer(marker);
+        
+        // Crée un nouveau marqueur temporaire
+        marker = L.marker(e.latlng, {
+            draggable: true,
+            icon: objectiveIcon
+        }).addTo(map);
 
-            document.getElementById('latitude').value = lat;
-            document.getElementById('longitude').value = lng;
-        }
+        // Met à jour les champs du formulaire
+        document.getElementById('latitude').value = e.latlng.lat.toFixed(6);
+        document.getElementById('longitude').value = e.latlng.lng.toFixed(6);
 
-        window.onload = function () {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function (pos) {
-                    initMap(pos.coords.latitude, pos.coords.longitude);
-                }, function () {
-                    initMap(48.8566, 2.3522); // Fallback: Paris
-                });
-            } else {
-                initMap(48.8566, 2.3522);
-            }
-        }
+        // Gestion du drag
+        marker.on('dragend', function(event) {
+            const pos = marker.getLatLng();
+            document.getElementById('latitude').value = pos.lat.toFixed(6);
+            document.getElementById('longitude').value = pos.lng.toFixed(6);
+        });
+    });
+
+    // 6. Fonctions utilitaires
+    window.editObjective = function(id) {
+        // Implémentez votre logique d'édition ici
+        console.log('Édition de l\'objectif', id);
+        // Exemple: window.location.href = `/objectifs/${id}/edit`;
+    };
+
+    // 7. Fit bounds pour voir tous les marqueurs
+    if (markersGroup.getLayers().length > 0) {
+        map.fitBounds(markersGroup.getBounds(), { padding: [50, 50] });
+    }
+});
+// Fonction pour centrer la carte sur un objectif
+window.focusOnMap = function(lat, lng) {
+    map.flyTo([lat, lng], 15, {
+        duration: 1,
+        easeLinearity: 0.25
+    });
+    
+    // Animation du marqueur
+    const marker = Object.values(markersGroup._layers)
+        .find(m => m.options.objectiveId === id);
+    
+    if (marker) {
+        marker.openPopup();
+        marker.setIcon(L.icon({
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-red.png',
+            iconSize: [25, 41]
+        }));
+        
+        setTimeout(() => {
+            marker.setIcon(objectiveIcon);
+        }, 2000);
+    }
+};
+
+// Fonction pour supprimer un partage
+window.unshareObjective = function(objectifId) {
+    if (confirm('Arrêter de suivre cet objectif ?')) {
+        axios.delete(`/api/objectifs/${objectifId}/unshare`)
+            .then(() => window.location.reload())
+            .catch(error => alert('Erreur: ' + error.response.data.message));
+    }
+};
+
     </script>
 @endsection

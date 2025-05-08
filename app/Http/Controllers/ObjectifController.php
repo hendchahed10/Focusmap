@@ -88,5 +88,45 @@ class ObjectifController extends Controller
             'titre' => $objectif->titre // Retourne le titre exact de la base
         ]);
     }
+// Dans votre contrôleur (ex: ObjectifController.php)
+public function create()
+{
+    $objectifs = auth()->user()->objectifs()
+        ->whereNotNull('latitude')
+        ->whereNotNull('longitude')
+        ->get();
+
+    return view('dashboard', compact('objectifs'));
+}
+// Dans ObjectifController.php
+public function dashboard()
+{
+    // Objectifs publics de tous les utilisateurs
+    $publicObjectives = Objectif::where('visibilite', 'public')
+        ->with('utilisateur')
+        ->latest()
+        ->get();
+
+    // Objectifs partagés avec l'utilisateur connecté
+    $sharedObjectives = auth()->user()->objectifsPartages()
+        ->with('utilisateur')
+        ->latest()
+        ->get();
+
+        return view('dashboard', [
+            'publicObjectives' => $publicObjectives,
+            'sharedObjectives' => $sharedObjectives,
+            'amis' => auth()->user()->amis
+        ]);
+}
+// ObjectifController.php
+public function unshare(Objectif $objectif)
+{
+    auth()->user()->objectifsPartages()->detach($objectif->id);
+    
+    return response()->json([
+        'message' => 'Vous ne suivez plus cet objectif'
+    ]);
+}
 
 }

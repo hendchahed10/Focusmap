@@ -48,5 +48,11 @@ public function amis()
     return $this->belongsToMany(Utilisateur::class, 'amities', 'login1', 'login2')
                 ->withPivot('login1', 'login2');
 }
+// Dans app/Models/User.php
+public function objectifsPartages()
+{
+    return $this->belongsToMany(Objectif::class, 'partages_objectifs', 
+              'utilisateur_login', 'objectif_id', 'login', 'id')->withTimestamps();;
+}
 
 }
