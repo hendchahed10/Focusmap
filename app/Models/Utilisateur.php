@@ -39,4 +39,14 @@ class Utilisateur extends Authenticatable
     {
         return 'login';
     }
+    public function events()
+{
+    return $this->hasMany(Event::class, 'utilisateur_login', 'login');
+}
+public function amis()
+{
+    return $this->belongsToMany(Utilisateur::class, 'amities', 'login1', 'login2')
+                ->withPivot('login1', 'login2');
+}
+
 }

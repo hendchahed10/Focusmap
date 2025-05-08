@@ -1,5 +1,4 @@
 @extends('app')
-
 @section('content')
 <div class="container mt-5">
     <h2>👤 Mon profil</h2>

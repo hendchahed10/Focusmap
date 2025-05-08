@@ -13,19 +13,24 @@ class ObjectifController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'titre' => 'required|string',
-            'description' => 'nullable|string',
-            'deadline' => 'nullable|date',
-            'visibilité' => 'nullable|string',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-        ]);
-        $validated['utilisateur_login'] = auth()->user()->login;
-        $objectif = Objectif::create($validated);
-        return redirect()->back()->with('success', 'Objectif créé avec succès !');
-    }
+{
+    $validated = $request->validate([
+        'titre' => 'required|string',
+        'description' => 'nullable|string',
+        'deadline' => 'nullable|date',
+        'visibilite' => 'nullable|in:prive,amis,public',
+        'latitude' => 'nullable|numeric|between:-90,90',
+        'longitude' => 'nullable|numeric|between:-180,180',
+    ]);
+
+    $validated['utilisateur_login'] = auth()->user()->login;
+
+
+    $objectif = Objectif::create($validated);
+
+    return redirect()->back()->with('success', 'Objectif créé avec succès !');
+}
+
 
     public function show($id)
     {
@@ -54,7 +59,7 @@ class ObjectifController extends Controller
             'titre' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'deadline' => 'nullable|date',
-            'visibilité' => 'nullable|string',
+            'visibilite' => 'nullable|string',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'utilisateur_login' => 'sometimes|string|exists:utilisateurs,login',
@@ -63,4 +68,25 @@ class ObjectifController extends Controller
         $objectif->update($validated);
         return response()->json($objectif);
     }
+    public function verifierTitre(Request $request)
+    {
+        $request->validate(['titre' => 'required|string']);
+        $objectif = Objectif::where('titre', 'LIKE', '%'.$request->titre.'%')
+                          ->where('utilisateur_login', auth()->user()->login)
+                          ->first();
+    
+        if (!$objectif) {
+            return response()->json([
+                'existe' => false,
+                'message' => 'Aucun objectif trouvé. Créez d\'abord l\'objectif.'
+            ], 404);
+        }
+    
+        return response()->json([
+            'existe' => true,
+            'objectif_id' => $objectif->id,
+            'titre' => $objectif->titre // Retourne le titre exact de la base
+        ]);
+    }
+
 }

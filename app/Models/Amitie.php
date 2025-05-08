@@ -12,6 +12,8 @@ class Amitie extends Model
     protected $table = 'amities';
 
     protected $fillable = ['login1', 'login2'];
+    public $timestamps = false;
+
 
     public function utilisateur1()
     {

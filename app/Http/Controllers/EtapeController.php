@@ -42,7 +42,7 @@ class EtapeController extends Controller
 
         $etape->update($validated);
 
-        return response()->json($etape);
+        return redirect()->back()->with('success', 'Étape mise à jour avec succès');
     }
 
     public function destroy($id)
@@ -50,7 +50,7 @@ class EtapeController extends Controller
         $etape = Etape::findOrFail($id);
         $etape->delete();
 
-        return response()->noContent();
+        return redirect()->back()->with('success', 'Étape supprimée avec succès');
     }
 
     public function etapesParObjectif($objectif_id)
@@ -64,6 +64,11 @@ class EtapeController extends Controller
     $etape->save();
 
     return redirect()->back();
+}
+public function edit($id)
+{
+    $etape = Etape::findOrFail($id);
+    return view('etapes.edit', compact('etape'));
 }
 
 }

@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddTimestampsToMotivationsTable extends Migration
+class AddVisibiliteToObjectifsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,10 +13,10 @@ class AddTimestampsToMotivationsTable extends Migration
      */
     public function up()
     {
-        Schema::table('motivations', function (Blueprint $table) {
-            $table->timestamps(); 
+        Schema::table('objectifs', function (Blueprint $table) {
+            $table->enum('visibilite', ['prive', 'amis', 'public'])->default('prive');
         });
-    }
+    }    
 
     /**
      * Reverse the migrations.
@@ -25,8 +25,8 @@ class AddTimestampsToMotivationsTable extends Migration
      */
     public function down()
     {
-        Schema::table('motivations', function (Blueprint $table) {
-            $table->dropTimestamps(); // supprime-les si on rollback
+        Schema::table('objectifs', function (Blueprint $table) {
+            //
         });
     }
 }

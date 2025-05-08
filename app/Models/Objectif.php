@@ -13,7 +13,7 @@ class Objectif extends Model
 
     protected $fillable = [
         'titre', 'description', 'deadline',
-        'visibilité', 'latitude', 'longitude', 'utilisateur_login'
+        'visibilite', 'latitude', 'longitude', 'utilisateur_login'
     ];
 
     public function utilisateur()
@@ -33,5 +33,20 @@ public function motivations()
 {
     return $this->hasMany(Motivation::class);
 }
+public function events()
+{
+    return $this->hasMany(Event::class, 'objectif_id', 'id');
+}
+public function estVisiblePar($user)
+{
+    if ($this->visibilite === 'public') return true;
+
+    if ($this->visibilite === 'amis' && $user) {
+        return $this->user->amis->contains($user->id);
+    }
+
+    return auth()->check() && $user && $user->id === $this->user_id;
+}
+
 
 }

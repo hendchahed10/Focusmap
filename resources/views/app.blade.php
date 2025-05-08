@@ -11,6 +11,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsmind@0.8.5/es6/jsmind.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsmind@0.8.5/style/jsmind.css">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     
     @yield('head')
 </head>

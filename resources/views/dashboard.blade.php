@@ -16,8 +16,36 @@
             @endif
         </div>
     </div>
+    {{-- Cartes des objectifs --}}
+    <div class="row mt-4">
+    @foreach($objectifs as $objectif)
+        <div class="col-md-4">
+            <div class="card mb-3 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title" style="font-family:cursive; font-weight:bold; color:rgb(126, 50, 50);">{{ $objectif->titre }}</h5>
+                    <p class="card-text">{{ Str::limit($objectif->description, 100) }}</p>
+                    <a href="{{ route('objectifs.show', $objectif->id) }}" class="btn btn-outline-danger">
+                        Voir l’objectif
+                    </a>
+                </div>
+            </div>
+        </div>
+    @endforeach
+</div>
 
-    {{-- Formulaire de création --}}
+{{--Calendrier des objectifs--}}
+<div class="container">
+        <h2 class="text-center mt-4">Calendrier de mes objectifs</h2>
+        <div id="calendar"></div>
+    </div>
+    <h3>Mes amis</h3>
+    <ul>
+        @foreach(auth()->user()->amis as $ami)
+            <li>{{ $ami->nom }} ({{ $ami->login }})</li>
+        @endforeach
+    </ul>
+
+    {{-- Formulaire de création d'objectifs --}}
     <h2>Créer un objectif</h2>
     <form action="{{ route('objectifs.store') }}" method="POST">
         @csrf
@@ -43,8 +71,17 @@
         </div>
 
         <div class="form-group mb-2">
-            <label for="deadline">Latitude :</label>
+            <label for="deadline"> :</label>
             <input type="date" name="deadline" id="deadline" class="form-control">
+        </div>
+
+        <div class="form-group mb-2">
+            <label for="visibilite">Visibilité :</label>
+            <select name="visibilite" id="visibilite" class="form-control">
+                <option value="prive">Privé</option>
+                <option value="amis">Amis</option>
+                <option value="public">Public</option>
+            </select>
         </div>
 
         <div class="form-group mb-2">
@@ -61,6 +98,18 @@
 
         <button type="submit" class="btn btn-success">Créer</button>
     </form>
+<br>
+    {{-- Formulaire d'ajout d'amis --}}
+    <form action="{{ route('amis.ajouter') }}" method="POST">
+    @csrf
+    <div class="form-group">
+        <label for="ami_login">Ajouter un ami :</label>
+        <input type="text" name="ami_login" id="ami_login" class="form-control" placeholder="Login de l'ami" required>
+    </div>
+    <br>
+    <button type="submit" class="btn btn-primary">Ajouter</button>
+</form>
+
 </div>
 <style>
     #jsmind_container {
@@ -83,6 +132,13 @@
     #jsmind_container a:hover {
         text-decoration: underline;
     }
+    #calendar {
+            max-width: 900px;
+            margin: 50px auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+    }
 </style>
 @endsection
 
@@ -93,6 +149,14 @@
     {{-- jsMind --}}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmind/0.4.6/jsmind.js"></script>
     <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jsmind/0.4.6/jsmind.css" />
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/fr.min.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+
 
     <script>
 document.addEventListener("DOMContentLoaded", function() {
@@ -135,7 +199,89 @@ document.addEventListener("DOMContentLoaded", function() {
 
 </script>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        selectable: true,
+        editable: true,
+        locale: 'fr',
+        events: '/api/calendar/events',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
 
+        // Gestion de la sélection (création)
+        select: function(info) {
+    const title = prompt('Entrez le titre du nouvel événement:');
+    if (title) {
+        // Vérification de l'objectif
+        axios.get('/objectifs/verifier', { 
+            params: { titre: title }
+        })
+        .then(response => {
+            if (response.data.existe) {
+                return axios.post('/calendar/events', { 
+                    title: title,
+                    start: info.startStr,
+                    end: info.endStr,
+                    color: '#3788d8',
+                    objectif_id: response.data.objectif_id,
+                    _token: document.querySelector('meta[name="csrf-token"]').content
+                });
+            } else {
+                throw new Error("Aucun objectif ne correspond à ce titre. Créez d'abord l'objectif.");
+            }
+        })
+        .then(() => {
+            calendar.refetchEvents();
+            alert('Événement créé avec succès!');
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert(error.response?.data?.message || error.message);
+        });
+    }
+    calendar.unselect();
+},
+        // Gestion du clic sur événement
+        eventClick: function(info) {
+            if (confirm(`Supprimer "${info.event.title}" ?`)) {
+                axios.delete(`/api/calendar/events/${info.event.id}`, {
+                    data: { _token: document.querySelector('meta[name="csrf-token"]').content }
+                })
+                .then(() => {
+                    info.event.remove();
+                    alert('Objectif supprimé');
+                })
+                .catch(error => {
+                    console.error('Erreur:', error.response);
+                    alert('Erreur lors de la suppression');
+                });
+            }
+        },
+
+        // Gestion du glisser-déposer
+        eventDrop: function(info) {
+            axios.put(`/api/calendar/events/${info.event.id}`, {
+                start: info.event.startStr,
+                end: info.event.endStr,
+                _token: document.querySelector('meta[name="csrf-token"]').content
+            })
+            .catch(error => {
+                console.error('Erreur:', error.response);
+                info.revert();
+                alert('Erreur de mise à jour');
+            });
+        }
+    });
+
+    calendar.render();
+});
+        </script>
 
     <script>
         let map, marker;
